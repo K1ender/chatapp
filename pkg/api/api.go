@@ -2,6 +2,7 @@ package api
 
 import (
 	"chatapp/internal/config"
+	"chatapp/internal/database"
 	"chatapp/internal/service/email"
 	"context"
 )
@@ -9,8 +10,13 @@ import (
 func Run(ctx context.Context) error {
 	cfg := config.MustInit()
 
-	emailService := email.NewEmailServiceSMTP(cfg.Email)
+	db, err := database.Connect(ctx, cfg.Database)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
 
+	emailService := email.NewEmailServiceSMTP(cfg.Email)
 	emailService.SendMagicLink(ctx, "test@test.test", "https://google.com")
 
 	return nil
