@@ -3,23 +3,36 @@ package repository
 import (
 	"chatapp/internal/model"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var (
 	ErrMagicLinkAlreadyUsed = fmt.Errorf("magic link already used")
+	ErrMagicLinkNotFound    = fmt.Errorf("magic link not found")
 )
 
 type MagicLink interface {
 	CreateMagicLink(ctx context.Context, magicLink model.MagicLink) (uuid.UUID, error)
 
+	// FindMagicLinkByToken returns a magic link by its token.
+	//
+	// It returns ErrMagicLinkNotFound if no record exists.
+	//
+	// It does not validate whether the magic link is expired or already used.
 	FindMagicLinkByToken(ctx context.Context, token string) (model.MagicLink, error)
 
 	DeleteMagicLinkByID(ctx context.Context, id uuid.UUID) error
 
+	// UseMagicLink marks a magic link as used.
+	//
+	// It returns ErrMagicLinkAlreadyUsed if the magic link is already used.
+	//
+	// It does not validate whether the magic link is expired.
 	UseMagicLink(ctx context.Context, id uuid.UUID) error
 }
 
@@ -78,6 +91,10 @@ func (p *PostgresMagicLinkRepository) FindMagicLinkByToken(ctx context.Context, 
 
 	err := p.db.QueryRow(ctx, query, token).Scan(&magicLink.ID, &magicLink.UserID, &magicLink.Token, &magicLink.ExpiresAt, &magicLink.Used, &magicLink.CreatedAt)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.MagicLink{}, ErrMagicLinkNotFound
+		}
+
 		return model.MagicLink{}, fmt.Errorf("find magic link by token: %w", err)
 	}
 

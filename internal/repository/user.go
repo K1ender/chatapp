@@ -3,10 +3,16 @@ package repository
 import (
 	"chatapp/internal/model"
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+var (
+	ErrUserNotFound = fmt.Errorf("user not found")
 )
 
 type User interface {
@@ -56,6 +62,10 @@ func (p *PostgresUserRepository) FindUserByEmail(ctx context.Context, email stri
 
 	err := p.db.QueryRow(ctx, query, email).Scan(&user.ID, &user.Email, &user.SigningPublicKey, &user.EncryptionPublicKey, &user.EncryptedPrivateKey, &user.CreatedAt)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.User{}, ErrUserNotFound
+		}
+
 		return model.User{}, fmt.Errorf("find user by email: %w", err)
 	}
 
