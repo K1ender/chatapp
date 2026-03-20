@@ -16,7 +16,7 @@ CREATE TABLE users (
 CREATE TABLE magic_links (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    token TEXT NOT NULL,
+    t   n TEXT NOT NULL,
     expires_at TIMESTAMPTZ NOT NULL,
     used BOOLEAN DEFAULT FALSE,
 
