@@ -21,6 +21,7 @@ type DatabaseConfig struct {
 type Config struct {
 	Email    EmailConfig
 	Database DatabaseConfig
+	Salt     string `env:"SALT" env-required:"true"`
 }
 
 func MustInit() Config {
